@@ -30,7 +30,7 @@ cv1 <- function( XY, vModels = c( "knn", "gbm", "glmnet", "svmLinear", "nnet" ) 
         if( m == "gbm" )
             cv <- train( Label ~ ., data=X1, method=m, trControl=fc, verbose = FALSE )
         else if( m == "nnet" )
-            cv <- train( Label ~ ., data=X1, method=m, trControl=fc, trace = FALSE )
+            cv <- train( Label ~ ., data=X1, method=m, trControl=fc, trace = FALSE, MaxNWts=2000 )
         else
             cv <- train( Label ~ ., data=X1, method=m, trControl=fc )
         
@@ -53,6 +53,11 @@ cvn <- function( fnIn, n = 100 )
     ## Load the data
     XY <- read_csv( fnIn, col_types=cols() ) %>% filter( !is.na( Label ) )
 
+    ## Identify and remove features with no variance
+    S <- XY %>% select( -Label, -Drug, -pubchem_id ) %>% summarize_all( sd ) %>%
+        select_if( ~(. > 0) )
+    XY <- XY %>% select( Label, Drug, pubchem_id, one_of( colnames(S) ) )
+    
     ## Compose an output filename
     fnOut <- tools::file_path_sans_ext( fnIn ) %>% basename %>% str_c( "-cv.csv" )
     cat( "Will write output to", fnOut, "\n" )
