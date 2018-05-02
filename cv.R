@@ -75,4 +75,5 @@ main <- function()
     cvn( "data/MACCSbinary.csv", 100 )
     cvn( "data/MACCScount.csv", 100 )
     cvn( "data/PChem.csv", 100 )
+    cvn( "data/Morgan.csv", 100 )
 }
