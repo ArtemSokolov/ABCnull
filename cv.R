@@ -41,7 +41,7 @@ cv1 <- function( XY, vModels = c( "knn", "gbm", "glmnet", "svmLinear", "nnet" ) 
     }
 
     ## Match up predictions to the original pubchem_ids
-    XY %>% mutate( rowIndex = 1:n() ) %>% select( pubchem_id, rowIndex ) %>%
+    XY %>% mutate( rowIndex = 1:n() ) %>% select( Label, pubchem_id, rowIndex ) %>%
         inner_join( RR, by="rowIndex" ) %>% select( -rowIndex )
 }
 
