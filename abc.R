@@ -5,6 +5,9 @@
 library( tidyverse )
 library( caret )
 
+## "Quiet" version of read_csv
+readq_csv <- function(...) {read_csv(..., col_types=cols())}
+
 ## Uses cross-validation to select the best model on training data
 ## Scores test data using this best model
 pred1 <- function( XY, method = "gbm" )
@@ -38,10 +41,10 @@ pred.all <- function( method = "gbm" )
     ## Evaluate each feature space separately
     ## Combine the results into a single data frame afterwards
     R <- list()
-    R[[1]] <- read_csv( "data/PChem.csv", col_types=cols() ) %>%
-        pred1(method) %>% rename( PChem = GMprob )
-    R[[2]] <- read_csv( "data/MACCSbinary.csv", col_types = cols() ) %>%
-        pred1(method) %>% rename( MACCSbin = GMprob )
+    R[[1]] <- readq_csv("data/MACCSbinary.csv") %>% pred1(method) %>% rename( MACCSbin = GMprob )
+    R[[2]] <- readq_csv("data/MACCScount.csv") %>% pred1(method) %>% rename( MACCScnt = GMprob )
+    R[[3]] <- readq_csv("data/PChem.csv") %>% pred1(method) %>% rename( PChem = GMprob )
+    R[[4]] <- readq_csv("data/Morgan.csv") %>% pred1(method) %>% rename( Morgan = GMprob )
     P <- plyr::join_all( R, type = "inner" )
 
     ## The following pubchem_id's appear in training data and should be excluded from final evaluation
