@@ -1,0 +1,15 @@
+Package: ABCmonster
+Title: Prediction of ABC-transporter-dependent efficacy using drug chemical structures
+Version: 0.1
+Authors@R: c(
+    person( "Artem", "Sokolov", email="artem.sokolov@gmail.com", role = c("aut","cre") ),
+    person( "Murat", "Cokol", email="muratcokol@gmail.com", role = c("aut") ) )
+Description: Companion materials for "Prediction of ABC-transporter-dependent efficacy using drug chemical structures" by Sokolov, et al.
+License: MIT
+URL: https://github.com/ArtemSokolov/ABCmonster
+BugReports: https://github.com/ArtemSokolov/ABCmonster/issues
+Depends: R (>= 3.3.2)
+Imports:
+    tidyverse,
+    caret
+
