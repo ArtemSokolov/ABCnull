@@ -8,7 +8,12 @@ library( tidyverse )
 MACCSbinary <- read_csv( "MACCSbinary.csv" ) %>% as.data.frame
 save( MACCSbinary, file="../data/MACCSbinary.RData" )
 
-##MACCScount <- read_csv( "MACCScount.csv" )
-##Morgan <- read_csv( "Morgan.csv" )
-##PChem <- read_csv( "PChem.csv" )
+MACCScount <- read_csv( "MACCScount.csv" ) %>% as.data.frame
+save( MACCScount, file="../data/MACCScount.RData" )
+
+Morgan <- read_csv( "Morgan.csv" ) %>% as.data.frame
+save( Morgan, file="../data/Morgan.RData" )
+
+PChem <- read_csv( "PChem.csv" ) %>% as.data.frame
+save( PChem, file="../data/PChem.RData" )
 

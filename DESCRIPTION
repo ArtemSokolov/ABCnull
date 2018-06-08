@@ -11,5 +11,7 @@ BugReports: https://github.com/ArtemSokolov/ABCmonster/issues
 Depends: R (>= 3.3.2)
 Imports:
     tidyverse,
+    e1071,
+    gbm,
     caret
 RoxygenNote: 6.0.1
