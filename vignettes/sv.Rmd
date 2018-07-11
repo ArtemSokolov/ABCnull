@@ -1,0 +1,62 @@
+---
+title: "Training predictors of sensitivity"
+output: html_document
+---
+
+We begin by loading the relevant libraries and data.
+
+```{r}
+library( tidyverse )
+library( ABCmonster )
+data( MACCSbinary )
+```
+
+## Univariate analysis
+
+As a precursor to training machine learning models, we first measure
+association with the sensitive / resistant labels by examining one
+feature at a time. This is done by applying Fisher's exact
+test. Because the test is applied multiple times, we also compute FDR
+using the Benjamini & Hochberg procedure.
+
+```{r}
+## Look at training data only (as determined by Label not being NA)
+P <- MACCSbinary %>% filter( !is.na(Label) ) %>%
+    ## Apply Fisher's Exact test against the Label column for each MACCS feature
+    summarize_at( vars(`MACCS(--8)`:`MACCS(165)`), ~fisher.test(.x, .y)$p.value, .$Label ) %>%
+    ## Compute the associated FDR
+    gather( Feature, pval ) %>% mutate( FDR = p.adjust(pval, "fdr") ) %>% arrange(FDR)
+```
+
+Looking at the most significant features, we note that six MACCS keys
+have an FDR below 0.05.
+
+```{r}
+filter( P, FDR < 0.05 )
+```
+
+Let's plot contingency tables for these keys.
+
+```{r fig.align="center", fig.width=7, fig.height=7}
+## Isolate the training data and reshape the data frame to be in long format
+CT <- MACCSbinary %>% filter( !is.na(Label) ) %>%
+    select( -Drug, -pubchem_id ) %>% gather( Feature, Count, -Label ) %>%
+    ## Merge against previously-computed p-values and select features with FDR < 0.05
+    inner_join( P, by="Feature" ) %>% filter( FDR < 0.05 ) %>%
+    ## Compute contingency table for each Label / Feature pair
+    group_by( Label, Feature ) %>% summarize( Yes = sum(Count), No = n() - sum(Count) ) %>%
+    ungroup %>% gather( Category, Count, -Label, -Feature )
+
+## Define the size legend to be used by the plot
+sg <- guide_legend( title = "# Drugs", override.aes=list(fill="gray50") )
+
+## Plot the contingency tables
+ggplot( CT, aes( y = Category, x = Label, size = Count, fill = Label, alpha = Category ) ) +
+    geom_point( shape=21, color="black" ) + theme_bw() +
+    facet_wrap( ~Feature, ncol=2 ) +
+    scale_size_continuous( range = c(2,22), breaks = c(15, 25, 50, 100, 200 ),
+                          guide =  ) +
+    scale_fill_manual( values = c( Resistant="tomato", Sensitive="steelblue" ), guide=FALSE ) +
+    scale_alpha_manual( values = c( No=0.5, Yes=1 ), guide=FALSE ) +
+    xlab( "Effective against ABC-16" ) + ylab( "Key present" )
+```
