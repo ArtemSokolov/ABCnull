@@ -43,24 +43,25 @@ particular MACCS key is present in a drug's structure.
 Let's begin by plotting a heatmap that presents and overview of the
 entire dataset. We will make extensive use of
 [tidy](https://www.jstatsoft.org/article/view/v059i10) data
-manipulation. As the first step, we load the appropriate library and
+manipulation. As the first step, we load the appropriate libraries and
 define a palette for subsequent plots.
 
 ```{r, message=FALSE}
 library( tidyverse )
+library( plotly )
 ABCpal <- c("Resistant" = "tomato", "Sensitive" = "steelblue")
 ```
 
 Isolate the training data by selecting the set of rows with non-`NA`
-labels.
+labels. `HH` will contain the matrix to be plotted as the heatmap,
+while `Annot` will store labels that will be displayed as an additional
+annotation bar at the top of the heatmap. The plotting is done using
+the [pheatmap package](https://github.com/raivokolde/pheatmap).
 
-```{r}
+```{r fig.align="center"}
 Xtrain <- MACCSbinary %>% filter( !is.na(Label) )
 HH <- Xtrain %>% select(-Label, -Drug) %>% column_to_rownames("pubchem_id") %>% as.matrix
 Annots <- select( Xtrain, pubchem_id, Label ) %>% column_to_rownames( "pubchem_id" )
-```
-
-```{r fig.align="center"}
 pheatmap::pheatmap( t(HH), show_rownames=FALSE, show_colnames=FALSE,
          annotation_col=Annots, annotation_names_col=FALSE, legend=FALSE,
          color=c("gray90","gray30"), annotation_colors=list(Label=ABCpal) )
@@ -74,12 +75,66 @@ post-processing consisting of leaf order optimization and grouping of rows.
 Lastly, we can perform dimensionality reduction to explore the general
 trends in the data.
 
-```{r fig.align="center"}
+```{r eval=FALSE}
 ## Compute PCA
 P <- Xtrain %>% select( -Label, -Drug, -pubchem_id ) %>% prcomp() %>%
     broom::augment( Xtrain ) %>% select( Label, PC1=.fittedPC1, PC2=.fittedPC2 )
 
 ## Plot the projection onto the first two principal components
-ggplot( P, aes(x=PC1, y=PC2, color=Label) ) + geom_point() +
+gg <- ggplot( P, aes(x=PC1, y=PC2, color=Label) ) + geom_point() +
     theme_bw() + scale_color_manual( values=ABCpal )
+ggplotly(gg)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+P <- Xtrain %>% select( -Label, -Drug, -pubchem_id ) %>% prcomp() %>%
+    broom::augment( Xtrain ) %>% rename( PC1 = .fittedPC1, PC2 = .fittedPC2 )
+gg <- ggplot( P, aes(x=PC1, y=PC2, color=Label, lbl1=Drug, lbl2=pubchem_id) ) +
+    geom_point() + theme_bw() + scale_color_manual( values=ABCpal, guide=FALSE )
+ggplotly(gg, tooltip=c("lbl1", "lbl2"), width=600) %>%
+    add_annotations( text="Label", xref="paper", yref="paper",
+                    x=1.02, xanchor="left",
+                    y=0.8, yanchor="bottom",    # Same y as legend below
+                    legendtitle=TRUE, showarrow=FALSE ) %>%
+    layout( legend=list(y=0.8, yanchor="top" ) ) %>%
+    htmltools::div( align="center" )
+```
+
+We observe that the unsupervised analysis is unable to distinguish
+between the class labels. In the next vignette, we will investigate this data in the
+context of supverised methods (URL here).
+
+## Additional Feature Spaces
+
+The package includes three additional feature representations of the same
+400 drugs: 1) `MACCScount`, which captures the number of occurrences
+of each MACCS fingerprint (as opposed to just their presence/absence,
+as in `MACCSbinary`); 2) `Morgan`, which captures ECFP/Morgan
+representation; and 3) `PChem`, which consists of physico-chemical
+properties. All three matrices are in the same format as
+`MACCSbinary`, including having the `Label` column designate class
+assignment (`Sensitive` or `Resistant`) for training data and `NA` for
+test samples.
+
+We can load and examine the data using the same functions as those
+outlined in the previous sections. Here's a couple of additional examples:
+```{r}
+## Load all three datasets
+data( MACCScount, Morgan, PChem )
+
+## Identify the highest number of occurrences of MACCS keys
+## List the top keys along with which drugs they occur in
+MACCScount %>% gather( Key, nOccur, -Label, -Drug, -pubchem_id ) %>% group_by( Key ) %>%
+    filter( nOccur == max(nOccur) ) %>% arrange( desc(nOccur) ) %>% ungroup %>% head
+
+## Count the total number of occurrences of Morgan keys
+## Display the most commonly-occurring keys
+Morgan %>% gather( Key, nOccur, -Label, -Drug, -pubchem_id ) %>% group_by( Key ) %>%
+    summarize( nTotal = sum(nOccur) ) %>% arrange( desc(nTotal) ) %>% head
+
+## We may be interested in normalizing each physicochemical property
+##   to have zero mean and standard deviation of one
+PChemNorm <- PChem %>% mutate_at( vars(-Label, -Drug, -pubchem_id), ~(.x - mean(.x))/sd(.x) )
+summary( PChemNorm$SlogP )
+sd( PChemNorm$SlogP )
 ```
