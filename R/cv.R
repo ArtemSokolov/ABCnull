@@ -36,7 +36,8 @@ ABCcv <- function( XY )
     }
 
     ## Evaluate a set of models on the same cross-validation split
-    RR <- c( "knn", "gbm", "glmnet", "svmLinear", "nnet" ) %>% rlang::set_names() %>%
+    RR <- c( "knn", "gbm", "glmnet", "svmLinear", "nnet" ) %>%
+        rlang::set_names( c( "k-NN", "GBM", "Log.Reg.", "SVM", "NNet" ) ) %>%
         purrr::map( mytrain ) %>% dplyr::bind_rows( .id = "Method" )
 
     ## Average performance across parameter grid for each method

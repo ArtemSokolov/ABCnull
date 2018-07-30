@@ -60,3 +60,65 @@ ggplot( CT, aes( y = Category, x = Label, size = Count, fill = Label, alpha = Ca
     scale_alpha_manual( values = c( No=0.5, Yes=1 ), guide=FALSE ) +
     xlab( "Effective against ABC-16" ) + ylab( "Key present" )
 ```
+
+## Cross-validation
+
+Before making predictions on the test data, we would like to select the appropriate algorithm. To do so, we run cross-validation to compare a number of popular methods: k-nearest neighbors (k-NN), gradient-boosted random forests (GBM), logistic regression with elastic net regularization (Log.Reg.), a support vector machine (SVM), and a neural network (NNet). The `ABCmonster` package provides a convenient function to evaluate all five methods on the same train-test split.
+
+```{r warning=FALSE, message=FALSE}
+## Fix the random seed to ensure reproducibility of this vignette
+set.seed( 1 )
+CV <- ABCcv( MACCSbinary )
+```
+
+Let's look at the first few rows of the output
+```{r}
+head(CV)
+```
+`ABCcv` returns the probability that a sample is `Sensitive`, as computed by individual methods when the sample is withheld in a test fold. The probabilities are averaged across parameter grids that are specific to individual methods. We can now use this information to construct ROC curves and compute AUC values. Note that in the paper, cross-validation is repeated 100 times to build robust estimates.
+
+To construct an ROC curve, we use the columns `Label` and `Pred` to compute running true positive and false positive rates.
+```{r fig.align="center", fig.width = 7, fig.height = 5, message=FALSE}
+ROC <- CV %>% group_by( Method ) %>% arrange( desc(Pred) ) %>%
+    mutate( tpr = cumsum(Label == "Sensitive") / sum(Label == "Sensitive"),
+           fpr = cumsum(Label == "Resistant") / sum(Label == "Resistant") )
+ggplot( ROC, aes(x=fpr, y=tpr, color=Method) ) + theme_bw() +
+    geom_smooth(se=FALSE) + geom_abline( slope=1, linetype="dashed" ) +
+    xlab( "False Positive Rate" ) + ylab( "True Positive Rate" ) +
+    scale_color_manual( values = c( "tomato", "#C3B56B", "salmon4", "darkolivegreen", "steelblue" ) )
+```
+
+To compute area under the ROC curves, we make use of Equation (3) in [Hand and Till, 2001](https://link.springer.com/content/pdf/10.1023%2FA%3A1010920819831.pdf), which does not require an explicit construction of the curves. We encapsulate this equation into an R function and apply it directly to the sample ranking:
+
+```{r}
+auc <- function( pred, lbls )
+{
+    np <- sum( lbls == "Sensitive" )
+    nn <- sum( lbls == "Resistant" )
+    s0 <- sum( rank(pred)[lbls == "Sensitive"] )
+    (s0 - np*(np+1) / 2) / (np*nn)
+}
+ROC %>% summarize( AUC = auc( Pred, Label ) )
+```
+
+As mentioned above, we repeated cross-validation 100 times in the paper, and the AUC estimates were averaged across those 100 runs.
+
+## Retrieving feature importance scores
+
+Based on the cross-validation results, we choose gradient boosted machines (GBM) as the primary method for subsequent analyses. Before applying the method to make predictions on new data, we may be interested to know what features are being utilized by it. We re-run cross-validation for GBM and isolate the model that is associated with parameter values that yield the best performance. We then interrogate this model for feature imporance scores and plot the top 20.
+
+```{r fig.align="center", fig.width=5, fig.height=3, warning=FALSE}
+## Fix the seed to allow vignette reproducibility
+set.seed(100)
+
+## Isolate the training data (defined by labels not being NA)
+## and apply cross-validation to predict Label from MACCS columns
+X1 <- MACCSbinary %>% filter( !is.na(Label) ) %>% select( -Drug, -pubchem_id )
+cv <- caret::train( Label ~ ., data=X1, method="gbm", verbose=FALSE,
+            trControl = caret::trainControl(method="cv") )
+FImp <- summary( cv$finalModel, plot = FALSE ) %>% arrange( desc(rel.inf) ) %>%
+    head(20) %>% mutate( Feature = factor(var,var), Score = rel.inf )
+ggplot( FImp, aes( x=Feature, y=Score ) ) + theme_bw() +
+    geom_bar( fill = "steelblue", alpha=0.8, stat="identity" ) +
+    theme( axis.text.x = element_text( angle=90, hjust=1, vjust=0.5 ) )
+```
