@@ -13,5 +13,6 @@ Imports:
     tidyverse,
     e1071,
     gbm,
+    glmnet,
     caret
 RoxygenNote: 6.0.1

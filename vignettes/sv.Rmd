@@ -5,7 +5,7 @@ output: html_document
 
 We begin by loading the relevant libraries and data.
 
-```{r}
+```{r message=FALSE}
 library( tidyverse )
 library( ABCmonster )
 data( MACCSbinary )
