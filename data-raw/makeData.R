@@ -17,3 +17,5 @@ save( Morgan, file="../data/Morgan.RData" )
 PChem <- read_csv( "PChem.csv" ) %>% as.data.frame
 save( PChem, file="../data/PChem.RData" )
 
+ABCvaldata <- read_csv( "ABC-valdata.csv") %>% as.data.frame
+save( ABCvaldata, file="../data/ABCvaldata.RData")
