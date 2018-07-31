@@ -1,0 +1,6 @@
+---
+title: "Prospective validation"
+output: html_document
+---
+
+UNDER DEVELOPMENT. This vignette will contain scripts needed to train a single GBM model on all training data, apply it to new data to make predictions, and to evaluate these predictions against true labels.

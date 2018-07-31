@@ -1,0 +1,28 @@
+navbar:
+  title: ABCmonster
+  left:
+    - icon: fa-home fa-lg
+      href: index.html
+    - text: Data
+      href: articles/rawdata.html
+    - text: Cross-validation
+      href: articles/sv.html
+    - text: Prospective Validation
+      href: articles/prosp.html
+    - text: Reference
+      href: reference/index.html
+
+template:
+  params:
+    bootswatch: flatly
+    
+reference:
+  - title: Cross-validation
+    desc: Helper function for evaluating multiple algorithms in cross-validation.
+    contents:
+    - ABCcv
+  - title: Prospective validation
+    desc: Helper functions to build a single model on the entire training set and using it to make predictions on new data.
+    contents:
+    - ABCtrain
+    - ABCpredict
