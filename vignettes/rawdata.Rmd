@@ -102,7 +102,7 @@ ggplotly(gg, tooltip=c("lbl1", "lbl2"), width=600) %>%
 
 We observe that the unsupervised analysis is unable to distinguish
 between the class labels. In the next vignette, we will investigate this data in the
-context of supverised methods (URL here).
+context of [supverised methods](sv.html).
 
 ## Additional Feature Spaces
 

@@ -3,4 +3,55 @@ title: "Prospective validation"
 output: html_document
 ---
 
-UNDER DEVELOPMENT. This vignette will contain scripts needed to train a single GBM model on all training data, apply it to new data to make predictions, and to evaluate these predictions against true labels.
+As with the previous vignettes, we begin by loading the relevant libraries and data.
+
+```{r message=FALSE}
+library( tidyverse )
+library( ABCmonster )
+data( MACCSbinary )
+```
+
+## Making predictions on test data
+
+We train a model and apply it to make predictions on new data.
+
+```{r warning=FALSE, message=FALSE}
+# m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
+# P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
+```
+
+The predictions are appended to the test data in `ABCpred` column. We can examine them directly by selecting the appropriate columns.
+
+```{r eval=FALSE}
+P %>% select( ABCpred, Drug, pubchem_id )
+```
+
+```{r echo=FALSE}
+# library( kableExtra )
+# P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>% 
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
+#   scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
+```
+
+## Validation data
+
+Data can be loaded directly from this package.
+
+```{r}
+data(ABCvaldata)
+head(ABCvaldata)
+```
+
+```{r}
+V <- ABCvaldata %>% gather( Strain, Growth, ABC16, Parental ) %>%
+  mutate( Dose = factor(Dose, levels=c("0","Top/4","Top/2","Top")),
+          DrugRep = str_c(Abbrev, Replicate) )
+ggplot( V, aes(x=Dose, y=Growth, fill=Strain) ) +
+  geom_area( alpha = 0.3, color="black", position="identity" ) + theme_bw() +
+  scale_fill_manual( values = c("ABC16"="green", "Parental"="gray50") ) +
+  facet_wrap( ~DrugRep, nrow=8, ncol=6 )
+```
+
+## Evaluation of performance
+
+UNDER DEVELOPMENT.
