@@ -15,9 +15,9 @@ data( MACCSbinary )
 
 We train a model and apply it to make predictions on new data.
 
-```{r warning=FALSE, message=FALSE}
-#m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
-#P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
+```{r eval=FALSE, warning=FALSE, message=FALSE}
+m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
+P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
 ```
 
 The predictions are appended to the test data in `ABCpred` column. We can examine them directly by selecting the appropriate columns.
@@ -26,11 +26,11 @@ The predictions are appended to the test data in `ABCpred` column. We can examin
 P %>% select( ABCpred, Drug, pubchem_id )
 ```
 
-```{r echo=FALSE}
-#library( kableExtra )
-#P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
-#    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
-#    scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
+```{r eval=FALSE, echo=FALSE}
+library( kableExtra )
+P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
+    scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
 ```
 
 ## Validation data
@@ -63,18 +63,25 @@ ggplot( V, aes(x=Dose, y=Growth, fill=Strain) ) +
 
 ### Concordance between replicates
 
-```{r fig.align="center", fig.width=5, fig.height=5}
-S <- ABCvaldata %>% group_by( Abbrev, Replicate ) %>%
+```{r fig.align="center"}
+## Define the color palette
+pal <- c( "Parental"="tomato", "Equal"="black", "ABC16"="steelblue" )
+
+S <- ABCvaldata %>% group_by( Drug, Abbrev, Replicate ) %>%
     summarize_at( vars(ABC16, Parental), sum ) %>%
-    mutate( Sens = -log2(ABC16 / Parental) ) %>%
-    select( -ABC16, -Parental ) %>% spread( Replicate, Sens )
-ggplot( S, aes(x=`1`,y=`2`) ) +
+    mutate( Value = -log2(ABC16 / Parental) ) %>% ungroup %>%
+    select( -ABC16, -Parental ) %>% spread( Replicate, Value ) %>%
+    mutate( Sensitivity = cut(`1`, c(-Inf, -0.1,0.1, Inf), labels=names(pal)) )
+ggplot( S, aes(x=`1`,y=`2`, color=Sensitivity) ) +
     geom_point() + theme_bw() + coord_fixed() +
-    ggrepel::geom_text_repel( aes(label = Abbrev) ) +
+    scale_color_manual( values=pal ) +
+    ggrepel::geom_text_repel( aes(label = Abbrev), show.legend=FALSE ) +
     geom_abline( slope = 1, linetype = "dashed", color = "gray40" ) +
     xlab( "Replicate 1" ) + ylab( "Replicate 2" )
 ```
 
 ## Evaluation of performance
 
-UNDER DEVELOPMENT.
+```{r}
+R <- P %>% select( ABCpred, Drug, pubchem_id ) %>% inner_join(S)
+```
