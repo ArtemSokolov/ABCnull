@@ -28,7 +28,7 @@ P %>% select( ABCpred, Drug, pubchem_id )
 
 ```{r echo=FALSE}
 # library( kableExtra )
-# P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>% 
+# P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
 #   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
 #   scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
 ```
@@ -42,14 +42,17 @@ data(ABCvaldata)
 head(ABCvaldata)
 ```
 
-```{r}
+```{r fig.align="center", fig.width=7, fig.height=7}
 V <- ABCvaldata %>% gather( Strain, Growth, ABC16, Parental ) %>%
-  mutate( Dose = factor(Dose, levels=c("0","Top/4","Top/2","Top")),
+  mutate( Dose = match(Dose, c("0","Top/4","Top/2","Top")),
           DrugRep = str_c(Abbrev, Replicate) )
 ggplot( V, aes(x=Dose, y=Growth, fill=Strain) ) +
-  geom_area( alpha = 0.3, color="black", position="identity" ) + theme_bw() +
-  scale_fill_manual( values = c("ABC16"="green", "Parental"="gray50") ) +
-  facet_wrap( ~DrugRep, nrow=8, ncol=6 )
+    geom_area( alpha = 0.3, color="black", position="identity" ) + theme_bw() +
+    scale_fill_manual( values = c("ABC16"="green", "Parental"="gray50") ) +
+    scale_x_continuous( breaks = 1:4, labels = c("0","Top/4","Top/2","Top") ) +
+    facet_wrap( ~DrugRep, nrow=8, ncol=6 ) +
+    theme( axis.text.x = element_text(angle=90, vjust=0.5, hjust=1),
+          strip.text.x = element_text(margin = margin(0.1,0,0.1,0,"cm")) )
 ```
 
 ## Evaluation of performance
