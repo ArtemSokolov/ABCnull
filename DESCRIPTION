@@ -3,6 +3,13 @@ Title: Prediction of ABC-transporter-dependent efficacy using drug chemical stru
 Version: 0.1
 Authors@R: c(
     person( "Artem", "Sokolov", email="artem.sokolov@gmail.com", role = c("aut","cre") ),
+    person( "Stephanie", "Ashenden", email="", role = c("aut") ),
+    person( "Nil", "Sahin", email="", role = c("aut") ),
+    person( "Nurdan", "Erdem", email="", role = c("aut") ),
+    person( "Rich", "Lewis", email="", role = c("aut") ),
+    person( "Elif", "Ozaltan", email="", role = c("aut") ),
+    person( "Andreas", "Bender", email="", role = c("aut") ),
+    person( "Frederick", "Roth", email="", role = c("aut") ),
     person( "Murat", "Cokol", email="muratcokol@gmail.com", role = c("aut") ) )
 Description: Companion materials for "Characterizing ABC-transporter substrate-likeness using a clean-slate genetic background" by Sokolov, et al.
 License: MIT

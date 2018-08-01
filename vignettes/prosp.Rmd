@@ -31,7 +31,7 @@ P %>% select( ABCpred, Drug, pubchem_id )
 library( kableExtra )
 P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
-    scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
+    scroll_box( height="300px", box_css = "border: none; width: 40%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
 ```
 
 ## Validation data
@@ -98,7 +98,7 @@ with( S, cor.test(`1`, `2`) )
 
 To evaluate predictions from our model, we first use the drug names to match up the predictions (column `ABCpred` from `P`) against the experimental dose response summary `S`. The overall measured response is then computed by averaging across the two replicates.
 
-```{r message=FALSE, fig.align="center", fig.width=6, fig.height=7}
+```{r message=FALSE, fig.align="center", fig.width=5, fig.height=5}
 ## Match up predictions and experimental data
 M <- P %>% select( ABCpred, Drug ) %>% inner_join(S, by="Drug") %>%
     mutate( Response = map2_dbl( `1`, `2`, ~mean(c(.x,.y)) ) )
@@ -112,7 +112,7 @@ ggplot( M, aes(x=ABCpred, y=Response) ) + theme_bw() +
     ggrepel::geom_text_repel( aes(label = Abbrev) )
 ```
 
-While the fit doesn't look particularly compelling, the correlation between predicted and measured values is nevertheless significant. We can compute the Spearman's row and the associated _p_ value between the two.
+While the fit doesn't look particularly compelling, the correlation between predicted and measured values is nevertheless significant. We can compute the Spearman's rho and the associated _p_ value between the two.
 
 ```{r}
 ## Apply correlation test to columns ABCpred and Response in M

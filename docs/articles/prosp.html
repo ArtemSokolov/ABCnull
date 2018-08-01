@@ -70,7 +70,7 @@
 <!--/.navbar -->
 
       
-      </header><div class="row">
+      </header><script src="prosp_files/kePrint-0.0.1/kePrint.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>Prospective validation</h1>
@@ -83,17 +83,420 @@
 
     
     
-<p>UNDER DEVELOPMENT. This vignette will contain scripts needed to train a single GBM model on all training data, apply it to new data to make predictions, and to evaluate these predictions against true labels.</p>
+<p>As with the previous vignettes, we begin by loading the relevant libraries and data.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>( tidyverse )
+<span class="kw">library</span>( ABCmonster )
+<span class="kw">data</span>( MACCSbinary )</code></pre></div>
+<div id="making-predictions-on-test-data" class="section level2">
+<h2 class="hasAnchor">
+<a href="#making-predictions-on-test-data" class="anchor"></a>Making predictions on test data</h2>
+<p>The package provides convenient functions to train a single GBM model on the entire training set, and then apply that model to score new samples. We use this functionality to make predictions on our test data. The training and test sets are part of the same data frame <code>MACCSbinary</code>, where the distinction between the two is given by the <code>Label</code> column: test samples have <code>NA</code> in this column. The helper functions, which are named <code><a href="../reference/ABCtrain.html">ABCtrain()</a></code> and <code><a href="../reference/ABCpredict.html">ABCpredict()</a></code>, recognize this convention and limit the provided data frame to the corresponding rows. Thus, all we have to do is apply both functions to <code>MACCSbinary</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m &lt;-<span class="st"> </span><span class="kw"><a href="../reference/ABCtrain.html">ABCtrain</a></span>( MACCSbinary )      <span class="co"># Will use rows of MACCSbinary where Label is not-NA</span>
+P &lt;-<span class="st"> </span><span class="kw"><a href="../reference/ABCpredict.html">ABCpredict</a></span>( m, MACCSbinary ) <span class="co"># Will use rows of MACCSbinary where Label is NA</span></code></pre></div>
+<p>Note that <code><a href="../reference/ABCpredict.html">ABCpredict()</a></code> drops the <code>Label</code> column, because it contains <code>NA</code> values for test samples and, thererfore, carries no information. The predictions are instead stored in a new <code>ABCpred</code> column. We can examine them directly by selecting the appropriate columns from the output.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">colnames</span>(P) %&gt;%<span class="st"> </span>head
+P %&gt;%<span class="st"> </span><span class="kw">select</span>( ABCpred, Drug, pubchem_id )</code></pre></div>
+<div style="border: none; width: 40%; margin-left: auto; margin-right: auto; margin-bottom: 10px;overflow-y: scroll; height:300px; ">
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead><tr>
+<th style="text-align:right;">
+ABCpred
+</th>
+<th style="text-align:left;">
+Drug
+</th>
+<th style="text-align:right;">
+pubchem_id
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.3336071
+</td>
+<td style="text-align:left;">
+Beauvericin
+</td>
+<td style="text-align:right;">
+3007984
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0399048
+</td>
+<td style="text-align:left;">
+Benomyl
+</td>
+<td style="text-align:right;">
+28780
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0283885
+</td>
+<td style="text-align:left;">
+Bisantrene
+</td>
+<td style="text-align:right;">
+5351322
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0274539
+</td>
+<td style="text-align:left;">
+Bromopyruvate
+</td>
+<td style="text-align:right;">
+70684
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0487629
+</td>
+<td style="text-align:left;">
+Calyculin A
+</td>
+<td style="text-align:right;">
+5311365
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.2469249
+</td>
+<td style="text-align:left;">
+Camptothecin
+</td>
+<td style="text-align:right;">
+24360
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0530215
+</td>
+<td style="text-align:left;">
+Cisplatin
+</td>
+<td style="text-align:right;">
+441203
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1881744
+</td>
+<td style="text-align:left;">
+Colchicine
+</td>
+<td style="text-align:right;">
+6167
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0641300
+</td>
+<td style="text-align:left;">
+Cycloheximide
+</td>
+<td style="text-align:right;">
+6197
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.2442043
+</td>
+<td style="text-align:left;">
+Dyclonine
+</td>
+<td style="text-align:right;">
+3180
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1768879
+</td>
+<td style="text-align:left;">
+Fenpropimorph
+</td>
+<td style="text-align:right;">
+93365
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.7887600
+</td>
+<td style="text-align:left;">
+Fluconazole
+</td>
+<td style="text-align:right;">
+3365
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1473230
+</td>
+<td style="text-align:left;">
+Imatinib
+</td>
+<td style="text-align:right;">
+5291
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0212638
+</td>
+<td style="text-align:left;">
+Latrunculin B
+</td>
+<td style="text-align:right;">
+3892
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0604480
+</td>
+<td style="text-align:left;">
+Methotrexate
+</td>
+<td style="text-align:right;">
+4112
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.9578105
+</td>
+<td style="text-align:left;">
+Miconazole
+</td>
+<td style="text-align:right;">
+4189
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.4685228
+</td>
+<td style="text-align:left;">
+Mitoxantrone
+</td>
+<td style="text-align:right;">
+4212
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.2158389
+</td>
+<td style="text-align:left;">
+Pentamidine
+</td>
+<td style="text-align:right;">
+4735
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0507315
+</td>
+<td style="text-align:left;">
+Rapamycin
+</td>
+<td style="text-align:right;">
+5284616
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1595335
+</td>
+<td style="text-align:left;">
+Staurosporine
+</td>
+<td style="text-align:right;">
+44259
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0494319
+</td>
+<td style="text-align:left;">
+Tacrolimus
+</td>
+<td style="text-align:right;">
+445643
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1771366
+</td>
+<td style="text-align:left;">
+Tamoxifen
+</td>
+<td style="text-align:right;">
+2733526
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1322911
+</td>
+<td style="text-align:left;">
+Tunicamycin
+</td>
+<td style="text-align:right;">
+6433557
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1129077
+</td>
+<td style="text-align:left;">
+Valinomycin
+</td>
+<td style="text-align:right;">
+441139
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="validation-data" class="section level2">
+<h2 class="hasAnchor">
+<a href="#validation-data" class="anchor"></a>Validation data</h2>
+<p>Now that we made predictions for test samples, we need ground truth to evaluate those predictions against. To that end, we collected dose response data for ABC16 and Parental yeast strains across four doses for all 24 test compounds. Each experiment was repeated in duplicate.</p>
+<p>The raw dose response validation data can be loaded directly from this package. Let’s load and examine the first few entries.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(ABCvaldata)
+<span class="kw">head</span>(ABCvaldata)</code></pre></div>
+<pre><code>##          Drug pubchem_id Abbrev Replicate  Dose     ABC16  Parental
+## 1 Beauvericin    3007984    BEA         1     0 1.0000000 1.0000000
+## 2 Beauvericin    3007984    BEA         1 Top/4 0.3689786 0.9675383
+## 3 Beauvericin    3007984    BEA         1 Top/2 0.1479589 0.8854351
+## 4 Beauvericin    3007984    BEA         1   Top 0.0999338 0.9135777
+## 5 Beauvericin    3007984    BEA         2     0 1.0000000 1.0000000
+## 6 Beauvericin    3007984    BEA         2 Top/4 0.6023782 1.0142114</code></pre>
+<p>Each row corresponds to a single drug / replicate / dose tuple. The last two columns contain growth values that have been normalized to the DMSO controls. We can plot this data directly for visualization (see Figure 4a in the paper).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Define order of labels for the "Dose" axis
+doseLbl &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">"0"</span>,<span class="st">"Top/4"</span>,<span class="st">"Top/2"</span>,<span class="st">"Top"</span>)
+
+## Prepare the data for plotting
+V &lt;-<span class="st"> </span>ABCvaldata %&gt;%<span class="st"> </span><span class="kw">gather</span>( Strain, Growth, ABC16, Parental ) %&gt;%
+<span class="st">     </span><span class="kw">mutate</span>( <span class="dt">Dose =</span> <span class="kw">match</span>(Dose, doseLbl), <span class="dt">DrugRep =</span> <span class="kw">str_c</span>(Abbrev, Replicate) )
+
+## Plot dose response curves
+<span class="kw">ggplot</span>( V, <span class="kw">aes</span>(<span class="dt">x=</span>Dose, <span class="dt">y=</span>Growth, <span class="dt">fill=</span>Strain) ) +
+<span class="st">    </span><span class="kw">geom_area</span>( <span class="dt">alpha =</span> <span class="fl">0.3</span>, <span class="dt">color=</span><span class="st">"black"</span>, <span class="dt">position=</span><span class="st">"identity"</span> ) +
+<span class="st">    </span><span class="kw">scale_fill_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>(<span class="st">"ABC16"</span>=<span class="st">"green"</span>, <span class="st">"Parental"</span>=<span class="st">"gray50"</span>) ) +
+<span class="st">    </span><span class="kw">scale_x_continuous</span>( <span class="dt">breaks =</span> <span class="dv">1</span>:<span class="dv">4</span>, <span class="dt">labels =</span> doseLbl ) +
+<span class="st">    </span><span class="kw">scale_y_continuous</span>( <span class="dt">breaks =</span> <span class="kw">c</span>(<span class="dv">0</span>,<span class="fl">0.5</span>,<span class="dv">1</span>) ) +
+<span class="st">    </span><span class="kw">facet_wrap</span>( ~DrugRep, <span class="dt">nrow=</span><span class="dv">6</span>, <span class="dt">ncol=</span><span class="dv">8</span> ) +<span class="st"> </span><span class="kw">theme_bw</span>() +
+<span class="st">    </span><span class="kw">theme</span>( <span class="dt">axis.text.x =</span> <span class="kw">element_text</span>(<span class="dt">angle=</span><span class="dv">90</span>, <span class="dt">vjust=</span><span class="fl">0.5</span>, <span class="dt">hjust=</span><span class="dv">1</span>),
+          <span class="dt">strip.text.x =</span> <span class="kw">element_text</span>(<span class="dt">margin =</span> <span class="kw">margin</span>(<span class="fl">0.1</span>,<span class="dv">0</span>,<span class="fl">0.1</span>,<span class="dv">0</span>,<span class="st">"cm"</span>)) )</code></pre></div>
+<p><img src="prosp_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;"></p>
+<p>We may also be interested in concordance of the two duplicates. Let overall drug response be the area under the dose response curve. Because the growth values have been normalized to DMSO, we approximate this area by simply summing the growth values across all four doses. We then compute the log-fold change in drug response between ABC16 and Parental strains, placing us in a position to directly compare the two replicates for each drug.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Define the color palette
+pal &lt;-<span class="st"> </span><span class="kw">c</span>( <span class="st">"Parental"</span>=<span class="st">"tomato"</span>, <span class="st">"Equal"</span>=<span class="st">"black"</span>, <span class="st">"ABC16"</span>=<span class="st">"steelblue"</span> )
+
+## Compute the overall response as the sum across dose-specific values
+S &lt;-<span class="st"> </span>ABCvaldata %&gt;%<span class="st"> </span><span class="kw">group_by</span>( Drug, Abbrev, Replicate ) %&gt;%
+<span class="st">    </span><span class="kw">summarize_at</span>( <span class="kw">vars</span>(ABC16, Parental), sum ) %&gt;%
+<span class="st">    </span><span class="kw">mutate</span>( <span class="dt">Value =</span> -<span class="kw">log2</span>(ABC16 /<span class="st"> </span>Parental) ) %&gt;%<span class="st"> </span>ungroup %&gt;%
+<span class="st">    </span><span class="kw">select</span>( -ABC16, -Parental ) %&gt;%<span class="st"> </span><span class="kw">spread</span>( Replicate, Value ) %&gt;%
+<span class="st">    </span><span class="kw">mutate</span>( <span class="dt">Sensitivity =</span> <span class="kw">cut</span>(<span class="st">`</span><span class="dt">1</span><span class="st">`</span>, <span class="kw">c</span>(-<span class="ot">Inf</span>, -<span class="fl">0.1</span>,<span class="fl">0.1</span>, <span class="ot">Inf</span>), <span class="dt">labels=</span><span class="kw">names</span>(pal)) )
+
+## Create a scatter plot that directly compares the two replicates
+<span class="kw">ggplot</span>( S, <span class="kw">aes</span>(<span class="dt">x=</span><span class="st">`</span><span class="dt">1</span><span class="st">`</span>,<span class="dt">y=</span><span class="st">`</span><span class="dt">2</span><span class="st">`</span>, <span class="dt">color=</span>Sensitivity) ) +
+<span class="st">    </span><span class="kw">geom_point</span>() +<span class="st"> </span><span class="kw">theme_bw</span>() +<span class="st"> </span><span class="kw">coord_fixed</span>() +
+<span class="st">    </span><span class="kw">scale_color_manual</span>( <span class="dt">values=</span>pal ) +
+<span class="st">    </span>ggrepel::<span class="kw">geom_text_repel</span>( <span class="kw">aes</span>(<span class="dt">label =</span> Abbrev), <span class="dt">show.legend=</span><span class="ot">FALSE</span> ) +
+<span class="st">    </span><span class="kw">geom_abline</span>( <span class="dt">slope =</span> <span class="dv">1</span>, <span class="dt">linetype =</span> <span class="st">"dashed"</span>, <span class="dt">color =</span> <span class="st">"gray40"</span> ) +
+<span class="st">    </span><span class="kw">xlab</span>( <span class="st">"Replicate 1"</span> ) +<span class="st"> </span><span class="kw">ylab</span>( <span class="st">"Replicate 2"</span> )</code></pre></div>
+<p><img src="prosp_files/figure-html/unnamed-chunk-7-1.png" width="700" style="display: block; margin: auto;"></p>
+<p>The plot shows a strong concordance between the two replicates. We can also quantify this observation by explicitly performing the correlation test.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">with</span>( S, <span class="kw">cor.test</span>(<span class="st">`</span><span class="dt">1</span><span class="st">`</span>, <span class="st">`</span><span class="dt">2</span><span class="st">`</span>) )</code></pre></div>
+<pre><code>## 
+##  Pearson's product-moment correlation
+## 
+## data:  1 and 2
+## t = 20.659, df = 22, p-value = 6.759e-16
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.9425843 0.9893738
+## sample estimates:
+##       cor 
+## 0.9751822</code></pre>
+</div>
+<div id="evaluation-of-performance" class="section level2">
+<h2 class="hasAnchor">
+<a href="#evaluation-of-performance" class="anchor"></a>Evaluation of performance</h2>
+<p>To evaluate predictions from our model, we first use the drug names to match up the predictions (column <code>ABCpred</code> from <code>P</code>) against the experimental dose response summary <code>S</code>. The overall measured response is then computed by averaging across the two replicates.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Match up predictions and experimental data
+M &lt;-<span class="st"> </span>P %&gt;%<span class="st"> </span><span class="kw">select</span>( ABCpred, Drug ) %&gt;%<span class="st"> </span><span class="kw">inner_join</span>(S, <span class="dt">by=</span><span class="st">"Drug"</span>) %&gt;%
+<span class="st">    </span><span class="kw">mutate</span>( <span class="dt">Response =</span> <span class="kw">map2_dbl</span>( <span class="st">`</span><span class="dt">1</span><span class="st">`</span>, <span class="st">`</span><span class="dt">2</span><span class="st">`</span>, ~<span class="kw">mean</span>(<span class="kw">c</span>(.x,.y)) ) )
+
+## Plot the correspondence between the two
+## Include a loess fit to the data points
+<span class="kw">ggplot</span>( M, <span class="kw">aes</span>(<span class="dt">x=</span>ABCpred, <span class="dt">y=</span>Response) ) +<span class="st"> </span><span class="kw">theme_bw</span>() +
+<span class="st">    </span><span class="kw">geom_point</span>() +<span class="st"> </span><span class="kw">xlab</span>(<span class="st">"Predicted P(ABC-16 is more sensitive)"</span>) +
+<span class="st">    </span><span class="kw">geom_smooth</span>( <span class="dt">col=</span><span class="st">"tomato"</span>, <span class="dt">span=</span><span class="dv">2</span> ) +
+<span class="st">    </span><span class="kw">ylab</span>( <span class="st">"Measured response, averaged across replicates"</span> ) +
+<span class="st">    </span>ggrepel::<span class="kw">geom_text_repel</span>( <span class="kw">aes</span>(<span class="dt">label =</span> Abbrev) )</code></pre></div>
+<p><img src="prosp_files/figure-html/unnamed-chunk-9-1.png" width="480" style="display: block; margin: auto;"></p>
+<p>While the fit doesn’t look particularly compelling, the correlation between predicted and measured values is nevertheless significant. We can compute the Spearman’s rho and the associated <em>p</em> value between the two.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Apply correlation test to columns ABCpred and Response in M
+<span class="kw">with</span>( M, <span class="kw">cor.test</span>(ABCpred, Response, <span class="dt">method=</span><span class="st">"spearman"</span>) )</code></pre></div>
+<pre><code>## 
+##  Spearman's rank correlation rho
+## 
+## data:  ABCpred and Response
+## S = 1066, p-value = 0.007682
+## alternative hypothesis: true rho is not equal to 0
+## sample estimates:
+##       rho 
+## 0.5365217</code></pre>
+</div>
+<div id="making-predictions-on-new-drugs" class="section level2">
+<h2 class="hasAnchor">
+<a href="#making-predictions-on-new-drugs" class="anchor"></a>Making predictions on new drugs</h2>
+<p>SECTION UNDER DEVELOPMENT. Here we will present the scripts that allow users to convert a SMILES representation of their drug to the binary MACCS features, which can then be directly provided to <code><a href="../reference/ABCpredict.html">ABCpredict()</a></code> to infer sensitivity.</p>
+</div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
+        <div id="tocnav">
+      <h2 class="hasAnchor">
+<a href="#tocnav" class="anchor"></a>Contents</h2>
+      <ul class="nav nav-pills nav-stacked">
+<li><a href="#making-predictions-on-test-data">Making predictions on test data</a></li>
+      <li><a href="#validation-data">Validation data</a></li>
+      <li><a href="#evaluation-of-performance">Evaluation of performance</a></li>
+      <li><a href="#making-predictions-on-new-drugs">Making predictions on new drugs</a></li>
+      </ul>
+</div>
       </div>
 
 </div>
 
 
       <footer><div class="copyright">
-  <p>Developed by Artem Sokolov, Murat Cokol.</p>
+  <p>Developed by Artem Sokolov, Stephanie Ashenden, Nil Sahin, Nurdan Erdem, Rich Lewis, Elif Ozaltan, Andreas Bender, Frederick Roth, Murat Cokol.</p>
 </div>
 
 <div class="pkgdown">

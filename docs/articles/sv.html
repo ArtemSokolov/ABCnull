@@ -92,13 +92,13 @@
 <a href="#univariate-analysis" class="anchor"></a>Univariate analysis</h2>
 <p>As a precursor to training machine learning models, we first measure association with the sensitive / resistant labels by examining one feature at a time. This is done by applying Fisher’s exact test. Because the test is applied multiple times, we also compute FDR using the Benjamini &amp; Hochberg procedure.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Look at training data only (as determined by Label not being NA)
-P &lt;-<span class="st"> </span>MACCSbinary <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>( <span class="op">!</span><span class="kw">is.na</span>(Label) ) <span class="op">%&gt;%</span>
+P &lt;-<span class="st"> </span>MACCSbinary %&gt;%<span class="st"> </span><span class="kw">filter</span>( !<span class="kw">is.na</span>(Label) ) %&gt;%
 <span class="st">    </span>## Apply Fisher's Exact test against the Label column for each MACCS feature
-<span class="st">    </span><span class="kw">summarize_at</span>( <span class="kw">vars</span>(<span class="st">`</span><span class="dt">MACCS(--8)</span><span class="st">`</span><span class="op">:</span><span class="st">`</span><span class="dt">MACCS(165)</span><span class="st">`</span>), <span class="op">~</span><span class="kw">fisher.test</span>(.x, .y)<span class="op">$</span>p.value, .<span class="op">$</span>Label ) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">summarize_at</span>( <span class="kw">vars</span>(<span class="st">`</span><span class="dt">MACCS(--8)</span><span class="st">`</span>:<span class="st">`</span><span class="dt">MACCS(165)</span><span class="st">`</span>), ~<span class="kw">fisher.test</span>(.x, .y)$p.value, .$Label ) %&gt;%
 <span class="st">    </span>## Compute the associated FDR
-<span class="st">    </span><span class="kw">gather</span>( Feature, pval ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>( <span class="dt">FDR =</span> <span class="kw">p.adjust</span>(pval, <span class="st">"fdr"</span>) ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">arrange</span>(FDR)</code></pre></div>
+<span class="st">    </span><span class="kw">gather</span>( Feature, pval ) %&gt;%<span class="st"> </span><span class="kw">mutate</span>( <span class="dt">FDR =</span> <span class="kw">p.adjust</span>(pval, <span class="st">"fdr"</span>) ) %&gt;%<span class="st"> </span><span class="kw">arrange</span>(FDR)</code></pre></div>
 <p>Looking at the most significant features, we note that six MACCS keys have an FDR below 0.05.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">filter</span>( P, FDR <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span> )</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">filter</span>( P, FDR &lt;<span class="st"> </span><span class="fl">0.05</span> )</code></pre></div>
 <pre><code>##      Feature         pval          FDR
 ## 1 MACCS(145) 5.913574e-07 8.811226e-05
 ## 2 MACCS(152) 1.076770e-04 7.169289e-03
@@ -108,26 +108,26 @@ P &lt;-<span class="st"> </span>MACCSbinary <span class="op">%&gt;%</span><span 
 ## 6 MACCS(150) 6.716003e-04 1.667807e-02</code></pre>
 <p>Let’s plot contingency tables for these keys.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Isolate the training data and reshape the data frame to be in long format
-CT &lt;-<span class="st"> </span>MACCSbinary <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>( <span class="op">!</span><span class="kw">is.na</span>(Label) ) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">select</span>( <span class="op">-</span>Drug, <span class="op">-</span>pubchem_id ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">gather</span>( Feature, Count, <span class="op">-</span>Label ) <span class="op">%&gt;%</span>
+CT &lt;-<span class="st"> </span>MACCSbinary %&gt;%<span class="st"> </span><span class="kw">filter</span>( !<span class="kw">is.na</span>(Label) ) %&gt;%
+<span class="st">    </span><span class="kw">select</span>( -Drug, -pubchem_id ) %&gt;%<span class="st"> </span><span class="kw">gather</span>( Feature, Count, -Label ) %&gt;%
 <span class="st">    </span>## Merge against previously-computed p-values and select features with FDR &lt; 0.05
-<span class="st">    </span><span class="kw">inner_join</span>( P, <span class="dt">by=</span><span class="st">"Feature"</span> ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>( FDR <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span> ) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">inner_join</span>( P, <span class="dt">by=</span><span class="st">"Feature"</span> ) %&gt;%<span class="st"> </span><span class="kw">filter</span>( FDR &lt;<span class="st"> </span><span class="fl">0.05</span> ) %&gt;%
 <span class="st">    </span>## Compute contingency table for each Label / Feature pair
-<span class="st">    </span><span class="kw">group_by</span>( Label, Feature ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarize</span>( <span class="dt">Yes =</span> <span class="kw">sum</span>(Count), <span class="dt">No =</span> <span class="kw">n</span>() <span class="op">-</span><span class="st"> </span><span class="kw">sum</span>(Count) ) <span class="op">%&gt;%</span>
-<span class="st">    </span>ungroup <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">gather</span>( Category, Count, <span class="op">-</span>Label, <span class="op">-</span>Feature )
+<span class="st">    </span><span class="kw">group_by</span>( Label, Feature ) %&gt;%<span class="st"> </span><span class="kw">summarize</span>( <span class="dt">Yes =</span> <span class="kw">sum</span>(Count), <span class="dt">No =</span> <span class="kw">n</span>() -<span class="st"> </span><span class="kw">sum</span>(Count) ) %&gt;%
+<span class="st">    </span>ungroup %&gt;%<span class="st"> </span><span class="kw">gather</span>( Category, Count, -Label, -Feature )
 
 ## Define the size legend to be used by the plot
 sg &lt;-<span class="st"> </span><span class="kw">guide_legend</span>( <span class="dt">title =</span> <span class="st">"# Drugs"</span>, <span class="dt">override.aes=</span><span class="kw">list</span>(<span class="dt">fill=</span><span class="st">"gray50"</span>) )
 
 ## Plot the contingency tables
-<span class="kw">ggplot</span>( CT, <span class="kw">aes</span>( <span class="dt">y =</span> Category, <span class="dt">x =</span> Label, <span class="dt">size =</span> Count, <span class="dt">fill =</span> Label, <span class="dt">alpha =</span> Category ) ) <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_point</span>( <span class="dt">shape=</span><span class="dv">21</span>, <span class="dt">color=</span><span class="st">"black"</span> ) <span class="op">+</span><span class="st"> </span><span class="kw">theme_bw</span>() <span class="op">+</span>
-<span class="st">    </span><span class="kw">facet_wrap</span>( <span class="op">~</span>Feature, <span class="dt">ncol=</span><span class="dv">2</span> ) <span class="op">+</span>
+<span class="kw">ggplot</span>( CT, <span class="kw">aes</span>( <span class="dt">y =</span> Category, <span class="dt">x =</span> Label, <span class="dt">size =</span> Count, <span class="dt">fill =</span> Label, <span class="dt">alpha =</span> Category ) ) +
+<span class="st">    </span><span class="kw">geom_point</span>( <span class="dt">shape=</span><span class="dv">21</span>, <span class="dt">color=</span><span class="st">"black"</span> ) +<span class="st"> </span><span class="kw">theme_bw</span>() +
+<span class="st">    </span><span class="kw">facet_wrap</span>( ~Feature, <span class="dt">ncol=</span><span class="dv">2</span> ) +
 <span class="st">    </span><span class="kw">scale_size_continuous</span>( <span class="dt">range =</span> <span class="kw">c</span>(<span class="dv">2</span>,<span class="dv">22</span>), <span class="dt">breaks =</span> <span class="kw">c</span>(<span class="dv">15</span>, <span class="dv">25</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span> ),
-                          <span class="dt">guide =</span> sg ) <span class="op">+</span>
-<span class="st">    </span><span class="kw">scale_fill_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>( <span class="dt">Resistant=</span><span class="st">"tomato"</span>, <span class="dt">Sensitive=</span><span class="st">"steelblue"</span> ), <span class="dt">guide=</span><span class="ot">FALSE</span> ) <span class="op">+</span>
-<span class="st">    </span><span class="kw">scale_alpha_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>( <span class="dt">No=</span><span class="fl">0.5</span>, <span class="dt">Yes=</span><span class="dv">1</span> ), <span class="dt">guide=</span><span class="ot">FALSE</span> ) <span class="op">+</span>
-<span class="st">    </span><span class="kw">xlab</span>( <span class="st">"Effective against ABC-16"</span> ) <span class="op">+</span><span class="st"> </span><span class="kw">ylab</span>( <span class="st">"Key present"</span> )</code></pre></div>
+                          <span class="dt">guide =</span> sg ) +
+<span class="st">    </span><span class="kw">scale_fill_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>( <span class="dt">Resistant=</span><span class="st">"tomato"</span>, <span class="dt">Sensitive=</span><span class="st">"steelblue"</span> ), <span class="dt">guide=</span><span class="ot">FALSE</span> ) +
+<span class="st">    </span><span class="kw">scale_alpha_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>( <span class="dt">No=</span><span class="fl">0.5</span>, <span class="dt">Yes=</span><span class="dv">1</span> ), <span class="dt">guide=</span><span class="ot">FALSE</span> ) +
+<span class="st">    </span><span class="kw">xlab</span>( <span class="st">"Effective against ABC-16"</span> ) +<span class="st"> </span><span class="kw">ylab</span>( <span class="st">"Key present"</span> )</code></pre></div>
 <p><img src="sv_files/figure-html/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
 <div id="cross-validation" class="section level2">
@@ -148,34 +148,34 @@ CV &lt;-<span class="st"> </span><span class="kw"><a href="../reference/ABCcv.ht
 ## 1 Sensitive lomerizine dihcl       3949      GBM 0.4791134
 ## 2 Sensitive lomerizine dihcl       3949     k-NN 0.3972222
 ## 3 Sensitive lomerizine dihcl       3949 Log.Reg. 0.4209963
-## 4 Sensitive lomerizine dihcl       3949     NNet 0.2720486
+## 4 Sensitive lomerizine dihcl       3949     NNet 0.2648101
 ## 5 Sensitive lomerizine dihcl       3949      SVM 0.3600332
 ## 6 Sensitive     clotrimazole       2812      GBM 0.4411503</code></pre>
 <p><code>ABCcv</code> returns the probability that a sample is <code>Sensitive</code>, as computed by individual methods when the sample is withheld in a test fold. The probabilities are averaged across parameter grids that are specific to individual methods. We can now use this information to construct ROC curves and compute AUC values. Note that in the paper, cross-validation is repeated 100 times to build robust estimates.</p>
 <p>To construct an ROC curve, we use the columns <code>Label</code> and <code>Pred</code> to compute running true positive and false positive rates.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ROC &lt;-<span class="st"> </span>CV <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>( Method ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">arrange</span>( <span class="kw">desc</span>(Pred) ) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">mutate</span>( <span class="dt">tpr =</span> <span class="kw">cumsum</span>(Label <span class="op">==</span><span class="st"> "Sensitive"</span>) <span class="op">/</span><span class="st"> </span><span class="kw">sum</span>(Label <span class="op">==</span><span class="st"> "Sensitive"</span>),
-           <span class="dt">fpr =</span> <span class="kw">cumsum</span>(Label <span class="op">==</span><span class="st"> "Resistant"</span>) <span class="op">/</span><span class="st"> </span><span class="kw">sum</span>(Label <span class="op">==</span><span class="st"> "Resistant"</span>) )
-<span class="kw">ggplot</span>( ROC, <span class="kw">aes</span>(<span class="dt">x=</span>fpr, <span class="dt">y=</span>tpr, <span class="dt">color=</span>Method) ) <span class="op">+</span><span class="st"> </span><span class="kw">theme_bw</span>() <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_smooth</span>(<span class="dt">se=</span><span class="ot">FALSE</span>) <span class="op">+</span><span class="st"> </span><span class="kw">geom_abline</span>( <span class="dt">slope=</span><span class="dv">1</span>, <span class="dt">linetype=</span><span class="st">"dashed"</span> ) <span class="op">+</span>
-<span class="st">    </span><span class="kw">xlab</span>( <span class="st">"False Positive Rate"</span> ) <span class="op">+</span><span class="st"> </span><span class="kw">ylab</span>( <span class="st">"True Positive Rate"</span> ) <span class="op">+</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ROC &lt;-<span class="st"> </span>CV %&gt;%<span class="st"> </span><span class="kw">group_by</span>( Method ) %&gt;%<span class="st"> </span><span class="kw">arrange</span>( <span class="kw">desc</span>(Pred) ) %&gt;%
+<span class="st">    </span><span class="kw">mutate</span>( <span class="dt">tpr =</span> <span class="kw">cumsum</span>(Label ==<span class="st"> "Sensitive"</span>) /<span class="st"> </span><span class="kw">sum</span>(Label ==<span class="st"> "Sensitive"</span>),
+           <span class="dt">fpr =</span> <span class="kw">cumsum</span>(Label ==<span class="st"> "Resistant"</span>) /<span class="st"> </span><span class="kw">sum</span>(Label ==<span class="st"> "Resistant"</span>) )
+<span class="kw">ggplot</span>( ROC, <span class="kw">aes</span>(<span class="dt">x=</span>fpr, <span class="dt">y=</span>tpr, <span class="dt">color=</span>Method) ) +<span class="st"> </span><span class="kw">theme_bw</span>() +
+<span class="st">    </span><span class="kw">geom_smooth</span>(<span class="dt">se=</span><span class="ot">FALSE</span>) +<span class="st"> </span><span class="kw">geom_abline</span>( <span class="dt">slope=</span><span class="dv">1</span>, <span class="dt">linetype=</span><span class="st">"dashed"</span> ) +
+<span class="st">    </span><span class="kw">xlab</span>( <span class="st">"False Positive Rate"</span> ) +<span class="st"> </span><span class="kw">ylab</span>( <span class="st">"True Positive Rate"</span> ) +
 <span class="st">    </span><span class="kw">scale_color_manual</span>( <span class="dt">values =</span> <span class="kw">c</span>( <span class="st">"tomato"</span>, <span class="st">"#C3B56B"</span>, <span class="st">"salmon4"</span>, <span class="st">"darkolivegreen"</span>, <span class="st">"steelblue"</span> ) )</code></pre></div>
 <p><img src="sv_files/figure-html/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>To compute area under the ROC curves, we make use of Equation (3) in <a href="https://link.springer.com/content/pdf/10.1023%2FA%3A1010920819831.pdf">Hand and Till, 2001</a>, which does not require an explicit construction of the curves. We encapsulate this equation into an R function and apply it directly to the sample ranking:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">auc &lt;-<span class="st"> </span><span class="cf">function</span>( pred, lbls )
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">auc &lt;-<span class="st"> </span>function( pred, lbls )
 {
-    np &lt;-<span class="st"> </span><span class="kw">sum</span>( lbls <span class="op">==</span><span class="st"> "Sensitive"</span> )
-    nn &lt;-<span class="st"> </span><span class="kw">sum</span>( lbls <span class="op">==</span><span class="st"> "Resistant"</span> )
-    s0 &lt;-<span class="st"> </span><span class="kw">sum</span>( <span class="kw">rank</span>(pred)[lbls <span class="op">==</span><span class="st"> "Sensitive"</span>] )
-    (s0 <span class="op">-</span><span class="st"> </span>np<span class="op">*</span>(np<span class="op">+</span><span class="dv">1</span>) <span class="op">/</span><span class="st"> </span><span class="dv">2</span>) <span class="op">/</span><span class="st"> </span>(np<span class="op">*</span>nn)
+    np &lt;-<span class="st"> </span><span class="kw">sum</span>( lbls ==<span class="st"> "Sensitive"</span> )
+    nn &lt;-<span class="st"> </span><span class="kw">sum</span>( lbls ==<span class="st"> "Resistant"</span> )
+    s0 &lt;-<span class="st"> </span><span class="kw">sum</span>( <span class="kw">rank</span>(pred)[lbls ==<span class="st"> "Sensitive"</span>] )
+    (s0 -<span class="st"> </span>np*(np<span class="dv">+1</span>) /<span class="st"> </span><span class="dv">2</span>) /<span class="st"> </span>(np*nn)
 }
-ROC <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarize</span>( <span class="dt">AUC =</span> <span class="kw">auc</span>( Pred, Label ) )</code></pre></div>
+ROC %&gt;%<span class="st"> </span><span class="kw">summarize</span>( <span class="dt">AUC =</span> <span class="kw">auc</span>( Pred, Label ) )</code></pre></div>
 <pre><code>## # A tibble: 5 x 2
 ##   Method     AUC
 ##   &lt;chr&gt;    &lt;dbl&gt;
 ## 1 GBM      0.744
 ## 2 k-NN     0.702
-## 3 Log.Reg. 0.663
+## 3 Log.Reg. 0.664
 ## 4 NNet     0.715
 ## 5 SVM      0.673</code></pre>
 <p>As mentioned above, we repeated cross-validation 100 times in the paper, and the AUC estimates were averaged across those 100 runs.</p>
@@ -189,13 +189,13 @@ ROC <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summ
 
 ## Isolate the training data (defined by labels not being NA)
 ## and apply cross-validation to predict Label from MACCS columns
-X1 &lt;-<span class="st"> </span>MACCSbinary <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>( <span class="op">!</span><span class="kw">is.na</span>(Label) ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>( <span class="op">-</span>Drug, <span class="op">-</span>pubchem_id )
-cv &lt;-<span class="st"> </span>caret<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/caret/topics/train">train</a></span>( Label <span class="op">~</span><span class="st"> </span>., <span class="dt">data=</span>X1, <span class="dt">method=</span><span class="st">"gbm"</span>, <span class="dt">verbose=</span><span class="ot">FALSE</span>,
-            <span class="dt">trControl =</span> caret<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/caret/topics/trainControl">trainControl</a></span>(<span class="dt">method=</span><span class="st">"cv"</span>) )
-FImp &lt;-<span class="st"> </span><span class="kw">summary</span>( cv<span class="op">$</span>finalModel, <span class="dt">plot =</span> <span class="ot">FALSE</span> ) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">arrange</span>( <span class="kw">desc</span>(rel.inf) ) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">head</span>(<span class="dv">20</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>( <span class="dt">Feature =</span> <span class="kw">factor</span>(var,var), <span class="dt">Score =</span> rel.inf )
-<span class="kw">ggplot</span>( FImp, <span class="kw">aes</span>( <span class="dt">x=</span>Feature, <span class="dt">y=</span>Score ) ) <span class="op">+</span><span class="st"> </span><span class="kw">theme_bw</span>() <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_bar</span>( <span class="dt">fill =</span> <span class="st">"steelblue"</span>, <span class="dt">alpha=</span><span class="fl">0.8</span>, <span class="dt">stat=</span><span class="st">"identity"</span> ) <span class="op">+</span>
+X1 &lt;-<span class="st"> </span>MACCSbinary %&gt;%<span class="st"> </span><span class="kw">filter</span>( !<span class="kw">is.na</span>(Label) ) %&gt;%<span class="st"> </span><span class="kw">select</span>( -Drug, -pubchem_id )
+cv &lt;-<span class="st"> </span>caret::<span class="kw">train</span>( Label ~<span class="st"> </span>., <span class="dt">data=</span>X1, <span class="dt">method=</span><span class="st">"gbm"</span>, <span class="dt">verbose=</span><span class="ot">FALSE</span>,
+            <span class="dt">trControl =</span> caret::<span class="kw">trainControl</span>(<span class="dt">method=</span><span class="st">"cv"</span>) )
+FImp &lt;-<span class="st"> </span><span class="kw">summary</span>( cv$finalModel, <span class="dt">plot =</span> <span class="ot">FALSE</span> ) %&gt;%<span class="st"> </span><span class="kw">arrange</span>( <span class="kw">desc</span>(rel.inf) ) %&gt;%
+<span class="st">    </span><span class="kw">head</span>(<span class="dv">20</span>) %&gt;%<span class="st"> </span><span class="kw">mutate</span>( <span class="dt">Feature =</span> <span class="kw">factor</span>(var,var), <span class="dt">Score =</span> rel.inf )
+<span class="kw">ggplot</span>( FImp, <span class="kw">aes</span>( <span class="dt">x=</span>Feature, <span class="dt">y=</span>Score ) ) +<span class="st"> </span><span class="kw">theme_bw</span>() +
+<span class="st">    </span><span class="kw">geom_bar</span>( <span class="dt">fill =</span> <span class="st">"steelblue"</span>, <span class="dt">alpha=</span><span class="fl">0.8</span>, <span class="dt">stat=</span><span class="st">"identity"</span> ) +
 <span class="st">    </span><span class="kw">theme</span>( <span class="dt">axis.text.x =</span> <span class="kw">element_text</span>( <span class="dt">angle=</span><span class="dv">90</span>, <span class="dt">hjust=</span><span class="dv">1</span>, <span class="dt">vjust=</span><span class="fl">0.5</span> ) )</code></pre></div>
 <p><img src="sv_files/figure-html/unnamed-chunk-9-1.png" width="480" style="display: block; margin: auto;"></p>
 </div>
@@ -217,7 +217,7 @@ FImp &lt;-<span class="st"> </span><span class="kw">summary</span>( cv<span clas
 
 
       <footer><div class="copyright">
-  <p>Developed by Artem Sokolov, Murat Cokol.</p>
+  <p>Developed by Artem Sokolov, Stephanie Ashenden, Nil Sahin, Nurdan Erdem, Rich Lewis, Elif Ozaltan, Andreas Bender, Frederick Roth, Murat Cokol.</p>
 </div>
 
 <div class="pkgdown">
