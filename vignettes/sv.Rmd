@@ -78,14 +78,33 @@ head(CV)
 `ABCcv` returns the probability that a sample is `Sensitive`, as computed by individual methods when the sample is withheld in a test fold. The probabilities are averaged across parameter grids that are specific to individual methods. We can now use this information to construct ROC curves and compute AUC values. Note that in the paper, cross-validation is repeated 100 times to build robust estimates.
 
 To construct an ROC curve, we use the columns `Label` and `Pred` to compute running true positive and false positive rates.
-```{r fig.align="center", fig.width = 7, fig.height = 5, message=FALSE}
+```{r eval=FALSE}
 ROC <- CV %>% group_by( Method ) %>% arrange( desc(Pred) ) %>%
     mutate( tpr = cumsum(Label == "Sensitive") / sum(Label == "Sensitive"),
            fpr = cumsum(Label == "Resistant") / sum(Label == "Resistant") )
-ggplot( ROC, aes(x=fpr, y=tpr, color=Method) ) + theme_bw() +
+gg <- ggplot( ROC, aes(x=fpr, y=tpr, color=Method) ) + theme_bw() +
     geom_smooth(se=FALSE) + geom_abline( slope=1, linetype="dashed" ) +
     xlab( "False Positive Rate" ) + ylab( "True Positive Rate" ) +
-    scale_color_manual( values = c( "tomato", "#C3B56B", "salmon4", "darkolivegreen", "steelblue" ) )
+    scale_color_manual( values=c("tomato", "#C3B56B", "salmon4", "darkolivegreen", "steelblue") )
+plotly::ggplotly(gg)
+```
+```{r echo=FALSE, message=FALSE}
+library( plotly )
+ROC <- CV %>% group_by( Method ) %>% arrange( desc(Pred) ) %>%
+    mutate( tpr = cumsum(Label == "Sensitive") / sum(Label == "Sensitive"),
+           fpr = cumsum(Label == "Resistant") / sum(Label == "Resistant") )
+gg <- ggplot( ROC, aes(x=fpr, y=tpr, color=Method) ) + theme_bw() +
+    geom_smooth(se=FALSE) + geom_abline( slope=1, linetype="dashed" ) +
+    xlab( "False Positive Rate" ) + ylab( "True Positive Rate" ) +
+    scale_color_manual( values=c("tomato", "#C3B56B", "salmon4", "darkolivegreen", "steelblue"),
+                       guide=FALSE)
+ggplotly(gg, width=600) %>%
+    add_annotations( text="Method", xref="paper", yref="paper",
+                    x=1.02, xanchor="left",
+                    y=0.8, yanchor="bottom",    # Same y as legend below
+                    legendtitle=TRUE, showarrow=FALSE ) %>%
+    layout( legend=list(y=0.8, yanchor="top" ) ) %>%
+    htmltools::div( align="center" )
 ```
 
 To compute area under the ROC curves, we make use of Equation (3) in [Hand and Till, 2001](https://link.springer.com/content/pdf/10.1023%2FA%3A1010920819831.pdf), which does not require an explicit construction of the curves. We encapsulate this equation into an R function and apply it directly to the sample ranking:
