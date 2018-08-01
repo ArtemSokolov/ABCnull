@@ -16,8 +16,8 @@ data( MACCSbinary )
 We train a model and apply it to make predictions on new data.
 
 ```{r warning=FALSE, message=FALSE}
-# m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
-# P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
+#m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
+#P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
 ```
 
 The predictions are appended to the test data in `ABCpred` column. We can examine them directly by selecting the appropriate columns.
@@ -27,10 +27,10 @@ P %>% select( ABCpred, Drug, pubchem_id )
 ```
 
 ```{r echo=FALSE}
-# library( kableExtra )
-# P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
-#   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
-#   scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
+#library( kableExtra )
+#P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
+#    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
+#    scroll_box( height="300px", box_css = "border: none; width: 35%; margin-left: auto; margin-right: auto; margin-bottom: 10px;" )
 ```
 
 ## Validation data
@@ -42,17 +42,37 @@ data(ABCvaldata)
 head(ABCvaldata)
 ```
 
-```{r fig.align="center", fig.width=7, fig.height=7}
+```{r fig.align="center", fig.width=7, fig.height=5, out.width="100%"}
+## Define labels for the "Dose" axis
+doseLbl <- c("0","Top/4","Top/2","Top")
+
+## Prepare the data for plotting
 V <- ABCvaldata %>% gather( Strain, Growth, ABC16, Parental ) %>%
-  mutate( Dose = match(Dose, c("0","Top/4","Top/2","Top")),
-          DrugRep = str_c(Abbrev, Replicate) )
+     mutate( Dose = match(Dose, doseLbl), DrugRep = str_c(Abbrev, Replicate) )
+
+## Plot dose response curves
 ggplot( V, aes(x=Dose, y=Growth, fill=Strain) ) +
-    geom_area( alpha = 0.3, color="black", position="identity" ) + theme_bw() +
+    geom_area( alpha = 0.3, color="black", position="identity" ) +
     scale_fill_manual( values = c("ABC16"="green", "Parental"="gray50") ) +
-    scale_x_continuous( breaks = 1:4, labels = c("0","Top/4","Top/2","Top") ) +
-    facet_wrap( ~DrugRep, nrow=8, ncol=6 ) +
+    scale_x_continuous( breaks = 1:4, labels = doseLbl ) +
+    scale_y_continuous( breaks = c(0,0.5,1) ) +
+    facet_wrap( ~DrugRep, nrow=6, ncol=8 ) + theme_bw() +
     theme( axis.text.x = element_text(angle=90, vjust=0.5, hjust=1),
           strip.text.x = element_text(margin = margin(0.1,0,0.1,0,"cm")) )
+```
+
+### Concordance between replicates
+
+```{r fig.align="center", fig.width=5, fig.height=5}
+S <- ABCvaldata %>% group_by( Abbrev, Replicate ) %>%
+    summarize_at( vars(ABC16, Parental), sum ) %>%
+    mutate( Sens = -log2(ABC16 / Parental) ) %>%
+    select( -ABC16, -Parental ) %>% spread( Replicate, Sens )
+ggplot( S, aes(x=`1`,y=`2`) ) +
+    geom_point() + theme_bw() + coord_fixed() +
+    ggrepel::geom_text_repel( aes(label = Abbrev) ) +
+    geom_abline( slope = 1, linetype = "dashed", color = "gray40" ) +
+    xlab( "Replicate 1" ) + ylab( "Replicate 2" )
 ```
 
 ## Evaluation of performance
