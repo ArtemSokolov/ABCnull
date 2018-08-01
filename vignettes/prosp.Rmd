@@ -13,20 +13,21 @@ data( MACCSbinary )
 
 ## Making predictions on test data
 
-We train a model and apply it to make predictions on new data.
+The package provides convenient functions to train a single GBM model on the entire training set, and then apply that model to score new samples. We use this functionality to make predictions on our test data. The training and test sets are part of the same data frame `MACCSbinary`, where the distinction between the two is given by the `Label` column: test samples have `NA` in this column. The helper functions, which are named `ABCtrain()` and `ABCpredict()`, recognize this convention and limit the provided data frame to the corresponding rows. Thus, all we have to do is apply both functions to `MACCSbinary`: 
 
-```{r eval=FALSE, warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE}
 m <- ABCtrain( MACCSbinary )      # Will use rows of MACCSbinary where Label is not-NA
 P <- ABCpredict( m, MACCSbinary ) # Will use rows of MACCSbinary where Label is NA
 ```
 
-The predictions are appended to the test data in `ABCpred` column. We can examine them directly by selecting the appropriate columns.
+Note that `ABCpredict()` drops the `Label` column, because it contains `NA` values for test samples and, thererfore, carries no information. The predictions are instead stored in a new `ABCpred` column. We can examine them directly by selecting the appropriate columns from the output.
 
 ```{r eval=FALSE}
+colnames(P) %>% head
 P %>% select( ABCpred, Drug, pubchem_id )
 ```
 
-```{r eval=FALSE, echo=FALSE}
+```{r echo=FALSE}
 library( kableExtra )
 P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=FALSE) %>%
@@ -35,15 +36,19 @@ P %>% select( ABCpred, Drug, pubchem_id ) %>% kable("html") %>%
 
 ## Validation data
 
-Data can be loaded directly from this package.
+Now that we made predictions for test samples, we need ground truth to evaluate those predictions against. To that end, we collected dose response data for ABC16 and Parental yeast strains across four doses for all 24 test compounds. Each experiment was repeated in duplicate.
+
+The raw dose response validation data can be loaded directly from this package. Let's load and examine the first few entries.
 
 ```{r}
 data(ABCvaldata)
 head(ABCvaldata)
 ```
 
+Each row corresponds to a single drug / replicate / dose tuple. The last two columns contain growth values that have been normalized to the DMSO controls. We can plot this data directly for visualization (see Figure 4a in the paper).
+
 ```{r fig.align="center", fig.width=7, fig.height=5, out.width="100%"}
-## Define labels for the "Dose" axis
+## Define order of labels for the "Dose" axis
 doseLbl <- c("0","Top/4","Top/2","Top")
 
 ## Prepare the data for plotting
@@ -61,17 +66,20 @@ ggplot( V, aes(x=Dose, y=Growth, fill=Strain) ) +
           strip.text.x = element_text(margin = margin(0.1,0,0.1,0,"cm")) )
 ```
 
-### Concordance between replicates
+We may also be interested in concordance of the two duplicates. Let overall drug response be the area under the dose response curve. Because the growth values have been normalized to DMSO, we approximate this area by simply summing the growth values across all four doses. We then compute the log-fold change in drug response between ABC16 and Parental strains, placing us in a position to directly compare the two replicates for each drug.
 
 ```{r fig.align="center"}
 ## Define the color palette
 pal <- c( "Parental"="tomato", "Equal"="black", "ABC16"="steelblue" )
 
+## Compute the overall response as the sum across dose-specific values
 S <- ABCvaldata %>% group_by( Drug, Abbrev, Replicate ) %>%
     summarize_at( vars(ABC16, Parental), sum ) %>%
     mutate( Value = -log2(ABC16 / Parental) ) %>% ungroup %>%
     select( -ABC16, -Parental ) %>% spread( Replicate, Value ) %>%
     mutate( Sensitivity = cut(`1`, c(-Inf, -0.1,0.1, Inf), labels=names(pal)) )
+
+## Create a scatter plot that directly compares the two replicates
 ggplot( S, aes(x=`1`,y=`2`, color=Sensitivity) ) +
     geom_point() + theme_bw() + coord_fixed() +
     scale_color_manual( values=pal ) +
@@ -80,8 +88,37 @@ ggplot( S, aes(x=`1`,y=`2`, color=Sensitivity) ) +
     xlab( "Replicate 1" ) + ylab( "Replicate 2" )
 ```
 
-## Evaluation of performance
+The plot shows a strong concordance between the two replicates. We can also quantify this observation by explicitly performing the correlation test.
 
 ```{r}
-R <- P %>% select( ABCpred, Drug, pubchem_id ) %>% inner_join(S)
+with( S, cor.test(`1`, `2`) )
 ```
+
+## Evaluation of performance
+
+To evaluate predictions from our model, we first use the drug names to match up the predictions (column `ABCpred` from `P`) against the experimental dose response summary `S`. The overall measured response is then computed by averaging across the two replicates.
+
+```{r message=FALSE, fig.align="center", fig.width=6, fig.height=7}
+## Match up predictions and experimental data
+M <- P %>% select( ABCpred, Drug ) %>% inner_join(S, by="Drug") %>%
+    mutate( Response = map2_dbl( `1`, `2`, ~mean(c(.x,.y)) ) )
+
+## Plot the correspondence between the two
+## Include a loess fit to the data points
+ggplot( M, aes(x=ABCpred, y=Response) ) + theme_bw() +
+    geom_point() + xlab("Predicted P(ABC-16 is more sensitive)") +
+    geom_smooth( col="tomato", span=2 ) +
+    ylab( "Measured response, averaged across replicates" ) +
+    ggrepel::geom_text_repel( aes(label = Abbrev) )
+```
+
+While the fit doesn't look particularly compelling, the correlation between predicted and measured values is nevertheless significant. We can compute the Spearman's row and the associated _p_ value between the two.
+
+```{r}
+## Apply correlation test to columns ABCpred and Response in M
+with( M, cor.test(ABCpred, Response, method="spearman") )
+```
+
+## Making predictions on new drugs
+
+SECTION UNDER DEVELOPMENT. Here we will present the scripts that allow users to convert a SMILES representation of their drug to the binary MACCS features, which can then be directly provided to `ABCpredict()` to infer sensitivity.
