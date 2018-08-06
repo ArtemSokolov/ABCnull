@@ -38,6 +38,17 @@ Drug identity is captured in the second (`Drug`) and third
 features, which in this case consist of binary calls on whether a
 particular MACCS key is present in a drug's structure.
 
+### SMILES representations of drugs
+
+The package also contains SMILES strings for all 400 drugs considered in the paper. These strings are stored as a separate data frame and can also be retrieved using the `data()` function.
+
+```{r}
+data( ABCSMILES )
+head( ABCSMILES )
+```
+
+Note that we provide both the Isomeric SMILES strings, which preserve stereochemistry information, as well as Canonical SMILES, where this information is stripped. Both sets of SMILES strings were obtained directly from PubChem, using their [PUG REST API](http://pubchemdocs.ncbi.nlm.nih.gov/pug-rest).
+
 ## Visualizing the data
 
 Let's begin by plotting a heatmap that presents and overview of the
