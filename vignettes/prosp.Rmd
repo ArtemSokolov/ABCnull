@@ -105,11 +105,11 @@ M <- P %>% select( ABCpred, Drug ) %>% inner_join(S, by="Drug") %>%
 
 ## Plot the correspondence between the two
 ## Include a loess fit to the data points
-ggplot( M, aes(x=ABCpred, y=Response) ) + theme_bw() +
+ggplot( M, aes(x=ABCpred, y=Response, color=Sensitivity) ) + theme_bw() +
     geom_point() + xlab("Predicted P(ABC-16 is more sensitive)") +
-    geom_smooth( col="tomato", span=2 ) +
-    ylab( "Measured response, averaged across replicates" ) +
-    ggrepel::geom_text_repel( aes(label = Abbrev) )
+    ylab( "Measured response,\n averaged across replicates" ) +
+    ggrepel::geom_text_repel( aes(label = Abbrev) ) +
+    scale_x_log10() + scale_color_manual( values=pal, guide=FALSE )
 ```
 
 While the fit doesn't look particularly compelling, the correlation between predicted and measured values is nevertheless significant. We can compute the Spearman's rho and the associated _p_ value between the two.
